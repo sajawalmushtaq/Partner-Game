@@ -19,13 +19,13 @@
 else if (isPaused)
 {
     <h4>Quiz Paused</h4>
-    <button @onclick="ResumeQuiz">Resume Quiz</button>
+    <FluentButton OnClick="ResumeQuiz">Resume Quiz</FluentButton>
 }
 else
 {
     <div>
         <p>Time Elapsed for this question: @currentTime seconds</p>
-        <button @onclick="PauseQuiz">Pause Quiz</button>
+        <FluentButton OnClick="PauseQuiz">Pause Quiz</FluentButton>
     </div>
 
     <div>
@@ -34,27 +34,29 @@ else
 
         @if (questions[currentQuestionIndex].Type == QuestionType.MultipleChoice)
         {
-            @foreach (var option in questions[currentQuestionIndex].Options)
-            {
-                <div>
-                    <input type="radio" name="option" @onchange="() => SelectOption(option)"
-                           checked="@(questions[currentQuestionIndex].SelectedAnswer == option)" />
-                    <label>@option</label>
-                </div>
-            }
+            <div class="fluent-radio-group">
+                @foreach (var option in questions[currentQuestionIndex].Options)
+                {
+                    <div class="fluent-radio-option">
+                        <input type="radio" id="option-@option" name="mcq-@currentQuestionIndex" value="@option"
+                               checked="@(questions[currentQuestionIndex].SelectedAnswer == option)"
+                               @onchange="() => SelectOption(option)" />
+                        <label for="option-@option">@option</label>
+                    </div>
+                }
+            </div>
         }
         else if (questions[currentQuestionIndex].Type == QuestionType.Text)
         {
-            <input type="text" @bind="questions[currentQuestionIndex].TextAnswer" />
+            <FluentTextField @bind-Value="questions[currentQuestionIndex].TextAnswer" />
         }
         else if (questions[currentQuestionIndex].Type == QuestionType.Checkbox)
         {
             @foreach (var option in questions[currentQuestionIndex].Options)
             {
                 <div>
-                    <input type="checkbox" value="@option"
-                           @onchange="e => ToggleCheckbox(option, ((ChangeEventArgs)e).Value)"
-                           checked="@(questions[currentQuestionIndex].CheckboxAnswers.Contains(option))" />
+                    <FluentCheckbox OnChange="e => ToggleCheckbox(currentQuestionIndex, option, ((ChangeEventArgs)e).Value)"
+                                    Checked="@(questions[currentQuestionIndex].CheckboxAnswers.Contains(option))" />
                     <label>@option</label>
                 </div>
             }
@@ -68,19 +70,19 @@ else
                  For one image question: 3/8
                  For the other image question: 1/4 -->
             <p>Enter your answer:</p>
-            <input type="text" @bind="questions[currentQuestionIndex].TextAnswer" />
+            <FluentTextField @bind-Value="questions[currentQuestionIndex].TextAnswer" />
         }
     </div>
 
     <div>
-        <button @onclick="PreviousQuestion" disabled="@(currentQuestionIndex == 0)">Previous</button>
+        <FluentButton OnClick="PreviousQuestion" Disabled="@(currentQuestionIndex == 0)">Previous</FluentButton>
         @if (currentQuestionIndex < questions.Count - 1)
         {
-            <button @onclick="NextQuestion">Next</button>
+            <FluentButton OnClick="NextQuestion">Next</FluentButton>
         }
         else
         {
-            <button @onclick="SubmitQuiz">Submit</button>
+            <FluentButton OnClick="SubmitQuiz">Submit</FluentButton>
         }
     </div>
 }
@@ -210,19 +212,20 @@ else
         questions[currentQuestionIndex].SelectedAnswer = option;
     }
 
-    private void ToggleCheckbox(string option, object checkedValue)
+    // Updated method now accepts a question index so that each checkbox is updated independently
+    private void ToggleCheckbox(int questionIndex, string option, object checkedValue)
     {
         bool isChecked = checkedValue is bool b && b;
         if (isChecked)
         {
-            if (!questions[currentQuestionIndex].CheckboxAnswers.Contains(option))
+            if (!questions[questionIndex].CheckboxAnswers.Contains(option))
             {
-                questions[currentQuestionIndex].CheckboxAnswers.Add(option);
+                questions[questionIndex].CheckboxAnswers.Add(option);
             }
         }
         else
         {
-            questions[currentQuestionIndex].CheckboxAnswers.Remove(option);
+            questions[questionIndex].CheckboxAnswers.Remove(option);
         }
     }
 

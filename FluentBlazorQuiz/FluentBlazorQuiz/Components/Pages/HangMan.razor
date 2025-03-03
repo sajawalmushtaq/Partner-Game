@@ -1,0 +1,194 @@
+﻿@page "/mini"
+@rendermode InteractiveServer
+@* Main Menu: Choose Random Game or Play with a Friend *@
+@if (!gameStarted)
+{
+    <div class="main-menu">
+        <h1>Hangman Game</h1>
+        <FluentButton OnClick="StartRandomGame">Play Random Game</FluentButton>
+        <FluentButton OnClick="EnableFriendMode">Play with a Friend</FluentButton>
+    </div>
+
+    @* If friend mode is enabled, show the sentence input box *@
+    @if (friendMode)
+    {
+        <div class="friend-input" style="margin-top:20px;">
+            <h2>Enter a Sentence for Hangman</h2>
+            <FluentTextField @bind-Value="friendSentence" Placeholder="Enter a sentence" />
+            <FluentButton OnClick="StartFriendGame">Start Game</FluentButton>
+        </div>
+    }
+}
+else
+{
+    @* Game Screen *@
+    @if (gameOver)
+    {
+        <div class="lose-screen">
+            <h1>You Lose!</h1>
+            <p>The sentence was: @sentence</p>
+            <FluentButton OnClick="RestartGame">Return to Main Menu</FluentButton>
+        </div>
+    }
+    else if (win)
+    {
+        <div class="win-screen">
+            <h1>You Win!</h1>
+            <p>The sentence was: @sentence</p>
+            <FluentButton OnClick="RestartGame">Return to Main Menu</FluentButton>
+        </div>
+    }
+    else
+    {
+        <div class="hangman-game">
+            <h2>Hangman Game</h2>
+            <p>Allowed Strikes: @maxStrikes</p>
+            <p>Current Strikes: @GetStrikesDisplay()</p>
+            <p style="font-size:1.5rem;">@GetSentenceDisplay()</p>
+
+            <FluentTextField @bind-Value="currentGuess" Placeholder="Enter a letter" />
+            <FluentButton OnClick="GuessLetter">Guess</FluentButton>
+        </div>
+    }
+}
+
+@code {
+    // Game state variables
+    private string sentence = "";
+    private List<char> guessedLetters = new List<char>();
+    private int strikes = 0;
+    private int maxStrikes = 5;
+    private string currentGuess = "";
+    private bool gameOver = false;
+    private bool win = false;
+    private bool gameStarted = false;
+    private bool friendMode = false;
+    private string friendSentence = "";
+
+    // Pre-defined random sentences (or phrases)
+    private List<string> randomSentences = new List<string>
+    {
+        "FLUENT BLZ IS FUN IS IT NOT",
+        "HANGMAN GAME IS FUNCTIONAL",
+        "PRINT HELLO WORLD",
+        "BLAZOR COMPONENTS RULE ALL OTHERS",
+        "C SHARP PROGRAMMING IS THE BEST"
+    };
+
+    // Main menu actions
+    private void StartRandomGame()
+    {
+        var rand = new Random();
+        int index = rand.Next(randomSentences.Count);
+        sentence = randomSentences[index].ToUpper();
+        StartGame();
+    }
+
+    private void EnableFriendMode()
+    {
+        friendMode = true;
+    }
+
+    private void StartFriendGame()
+    {
+        if (!string.IsNullOrWhiteSpace(friendSentence))
+        {
+            sentence = friendSentence.ToUpper();
+            StartGame();
+        }
+    }
+
+    private void StartGame()
+    {
+        guessedLetters.Clear();
+        strikes = 0;
+        gameOver = false;
+        win = false;
+        gameStarted = true;
+        // Reset friend mode state/input
+        friendSentence = "";
+    }
+
+    // Returns the sentence with underscores for letters not yet guessed (non-letter characters are shown)
+    private string GetSentenceDisplay()
+    {
+        var display = "";
+        foreach (char c in sentence)
+        {
+            if (char.IsLetter(c))
+            {
+                display += guessedLetters.Contains(c) ? c + " " : "_ ";
+            }
+            else
+            {
+                display += c + " ";
+            }
+        }
+        return display.Trim();
+    }
+
+    // Displays strikes as vertical bars
+    private string GetStrikesDisplay()
+    {
+        return new string('|', strikes);
+    }
+
+    // Called when the user clicks "Guess"
+    private void GuessLetter()
+    {
+        if (string.IsNullOrWhiteSpace(currentGuess) || currentGuess.Length != 1)
+        {
+            currentGuess = "";
+            return;
+        }
+
+        char letter = char.ToUpper(currentGuess[0]);
+        currentGuess = "";
+
+        // Ignore if letter was already guessed
+        if (guessedLetters.Contains(letter))
+        {
+            return;
+        }
+
+        guessedLetters.Add(letter);
+
+        // If the guessed letter is not in the sentence, increment strike count
+        if (!sentence.Contains(letter))
+        {
+            strikes++;
+            if (strikes >= maxStrikes)
+            {
+                gameOver = true;
+            }
+        }
+
+        // Check win condition: All letters (ignoring non-letter characters) have been guessed
+        bool allGuessed = true;
+        foreach (char c in sentence)
+        {
+            if (char.IsLetter(c) && !guessedLetters.Contains(c))
+            {
+                allGuessed = false;
+                break;
+            }
+        }
+        if (allGuessed)
+        {
+            win = true;
+        }
+    }
+
+    // Resets the game state and returns to the main menu
+    private void RestartGame()
+    {
+        gameStarted = false;
+        friendMode = false;
+        sentence = "";
+        guessedLetters.Clear();
+        strikes = 0;
+        gameOver = false;
+        win = false;
+        currentGuess = "";
+    }
+}
