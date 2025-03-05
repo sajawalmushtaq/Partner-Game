@@ -9,6 +9,8 @@ builder.Services.AddRazorComponents()
 builder.Services.AddFluentUIComponents();
 builder.Services.AddSingleton<FluentBlazorQuiz.Services.QuizStateService>();
 
+
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.

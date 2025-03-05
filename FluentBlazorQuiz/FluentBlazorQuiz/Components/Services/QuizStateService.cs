@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace FluentBlazorQuiz.Components.Services
+namespace FluentBlazorQuiz.Services
 {
     public class QuizState
     {
@@ -14,8 +14,6 @@ namespace FluentBlazorQuiz.Components.Services
         public int TotalTime { get; set; }
     }
 
-    // You can also include your Question and QuestionType classes here
-    // or keep them in your existing file.
     public class Question
     {
         public string Text { get; set; } = "";
@@ -40,10 +38,10 @@ namespace FluentBlazorQuiz.Components.Services
 
     public class QuizStateService
     {
-        // Hold the quiz state. This will persist across navigation.
+        // Hold the quiz state; this will persist across navigation.
         public QuizState QuizState { get; set; } = new QuizState();
 
-        // Optional: Helper methods
+        // Helper methods to update the state.
         public void PauseQuiz() => QuizState.IsPaused = true;
         public void ResumeQuiz() => QuizState.IsPaused = false;
     }

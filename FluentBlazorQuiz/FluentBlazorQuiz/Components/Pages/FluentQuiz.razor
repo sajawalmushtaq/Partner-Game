@@ -1,59 +1,113 @@
 ﻿@page "/"
+
 @rendermode InteractiveServer
+
 @inject IJSRuntime JS
+
 @inject NavigationManager NavigationManager
+
 @inject FluentBlazorQuiz.Services.QuizStateService QuizStateService
+
+
 
 <h3>Simple Addition Quiz</h3>
 
+
+
 @if (Quiz.IsSubmitted)
+
 {
+
     <h3>Results</h3>
+
     <p>Grade: @Quiz.Grade/100</p>
+
     <p>Total Time: @Quiz.TotalTime seconds</p>
+
     <ul>
+
         @for (int i = 0; i < Quiz.Questions.Count; i++)
+
         {
+
             <li>Question @(i + 1): @Quiz.Questions[i].ElapsedTime seconds</li>
+
         }
+
     </ul>
+
 }
+
 else if (Quiz.IsPaused)
+
 {
+
     <h4>Quiz Paused</h4>
+
     <FluentButton OnClick="ResumeQuiz">Resume Quiz</FluentButton>
+
 }
+
 else
+
 {
-    <div>
-        <p>Time Elapsed for this question: @Quiz.CurrentTime seconds</p>
-        <FluentButton OnClick="PauseQuiz">Pause Quiz</FluentButton>
-    </div>
 
     <div>
+
+        <p>Time Elapsed for this question: @Quiz.CurrentTime seconds</p>
+
+        <FluentButton OnClick="PauseQuiz">Pause Quiz</FluentButton>
+
+    </div>
+
+
+
+    <div>
+
         <p>Question @((Quiz.CurrentQuestionIndex + 1)) of @Quiz.Questions.Count</p>
+
         <p>@Quiz.Questions[Quiz.CurrentQuestionIndex].Text</p>
+
         @* Render the question depending on its type *@
+
         @if (Quiz.Questions[Quiz.CurrentQuestionIndex].Type == FluentBlazorQuiz.Services.QuestionType.MultipleChoice)
+
         {
+
             <div class="fluent-radio-group">
+
                 @foreach (var option in Quiz.Questions[Quiz.CurrentQuestionIndex].Options)
+
                 {
+
                     <div class="fluent-radio-option">
+
                         <input type="radio" id="option-@option" name="mcq-@Quiz.CurrentQuestionIndex" value="@option"
                                checked="@(Quiz.Questions[Quiz.CurrentQuestionIndex].SelectedAnswer == option)"
                                @onchange="() => SelectOption(option)" />
+
                         <label for="option-@option">@option</label>
+
                     </div>
+
                 }
+
             </div>
+
         }
+
         else if (Quiz.Questions[Quiz.CurrentQuestionIndex].Type == FluentBlazorQuiz.Services.QuestionType.Text)
+
         {
+
             <FluentTextField @bind-Value="Quiz.Questions[Quiz.CurrentQuestionIndex].TextAnswer" />
+
         }
+
         else if (Quiz.Questions[Quiz.CurrentQuestionIndex].Type == FluentBlazorQuiz.Services.QuestionType.Checkbox)
+
         {
+
             <FluentSelect TOption="string" Multiple="true"
                           Items="Quiz.Questions[Quiz.CurrentQuestionIndex].Options"
                           OptionText="@(option => option)"
@@ -61,230 +115,457 @@ else
                           SelectedOptions="Quiz.Questions[Quiz.CurrentQuestionIndex].CheckboxAnswers"
                           SelectedOptionsChanged="@(selected => OnSelectChanged(Quiz.CurrentQuestionIndex, selected))"
                           Placeholder="Select options">
+
             </FluentSelect>
+
         }
+
         else if (Quiz.Questions[Quiz.CurrentQuestionIndex].Type == FluentBlazorQuiz.Services.QuestionType.Image)
+
         {
+
             <img src="@Quiz.Questions[Quiz.CurrentQuestionIndex].ImageUrl" alt="Pie Chart" style="max-width:300px;" />
+
             <p>Enter your answer:</p>
+
             <FluentTextField @bind-Value="Quiz.Questions[Quiz.CurrentQuestionIndex].TextAnswer" />
+
         }
+
     </div>
+
+
 
     <div>
+
         <FluentButton OnClick="PreviousQuestion" Disabled="@(Quiz.CurrentQuestionIndex == 0)">Previous</FluentButton>
+
         @if (Quiz.CurrentQuestionIndex < Quiz.Questions.Count - 1)
+
         {
+
             <FluentButton OnClick="NextQuestion">Next</FluentButton>
+
         }
+
         else
+
         {
+
             <FluentButton OnClick="SubmitQuiz">Submit</FluentButton>
+
         }
+
     </div>
+
 }
 
+
+
 @code {
+
     // Convenience property for easier access to the shared quiz state.
+
     private FluentBlazorQuiz.Services.QuizState Quiz => QuizStateService.QuizState;
 
+
+
     protected override void OnInitialized()
+
     {
+
         if (Quiz.Questions == null || Quiz.Questions.Count == 0)
+
         {
+
             InitializeQuestions();
+
         }
+
         StartTimer();
+
     }
+
+
 
     private void InitializeQuestions()
+
     {
+
         Quiz.Questions.Clear();
+
         var rnd = new Random();
+
         // Create 8 addition questions with randomized operands and types.
+
         for (int i = 0; i < 8; i++)
+
         {
+
             int a = rnd.Next(1, 11);
+
             int b = rnd.Next(1, 11);
+
             int correctAnswer = a + b;
+
             string questionText = $"What is {a} + {b}?";
 
+
+
             // Randomly choose question type: MultipleChoice, Text, or Checkbox.
+
             var qType = (FluentBlazorQuiz.Services.QuestionType)rnd.Next(0, 3);
+
             var question = new FluentBlazorQuiz.Services.Question
+
                 {
+
                     Text = questionText,
+
                     Type = qType,
+
                     CorrectAnswer = correctAnswer,
+
                     ElapsedTime = 0
+
                 };
+
+
 
             if (qType == FluentBlazorQuiz.Services.QuestionType.MultipleChoice ||
+
                 qType == FluentBlazorQuiz.Services.QuestionType.Checkbox)
+
             {
+
                 var options = new List<string>
+
                 {
+
                     correctAnswer.ToString(),
+
                     (correctAnswer + 1).ToString(),
+
                     (correctAnswer > 1 ? (correctAnswer - 1).ToString() : (correctAnswer + 2).ToString())
+
                 };
+
                 question.Options = options.OrderBy(x => rnd.Next()).ToList();
+
             }
+
             Quiz.Questions.Add(question);
+
         }
+
+
 
         // Add 2 image questions.
+
         var imageQuestion1 = new FluentBlazorQuiz.Services.Question
+
             {
+
                 Text = "What fraction does this pie chart show? (Pie Chart Question)",
+
                 Type = FluentBlazorQuiz.Services.QuestionType.Image,
+
                 ImageUrl = "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTCLlRfIq-jbntyjQgO_emyfBBVeJ_Gn7n30w&s",
+
                 CorrectFraction = "3/8",
+
                 ElapsedTime = 0
+
             };
+
+
 
         var imageQuestion2 = new FluentBlazorQuiz.Services.Question
+
             {
+
                 Text = "What fraction does this pie chart show? (Pie Chart Question)",
+
                 Type = FluentBlazorQuiz.Services.QuestionType.Image,
+
                 ImageUrl = "https://etc.usf.edu/clipart/74300/74310/74310_pie_1-4_lg.gif",
+
                 CorrectFraction = "1/4",
+
                 ElapsedTime = 0
+
             };
 
+
+
         Quiz.Questions.Add(imageQuestion1);
+
         Quiz.Questions.Add(imageQuestion2);
+
         Quiz.Questions = Quiz.Questions.OrderBy(x => rnd.Next()).ToList();
+
     }
+
+
 
     private System.Threading.Timer? timer;
+
     private void StartTimer()
+
     {
+
         timer?.Dispose();
+
         Quiz.CurrentTime = Quiz.Questions[Quiz.CurrentQuestionIndex].ElapsedTime;
+
         timer = new System.Threading.Timer(Callback, null, 1000, 1000);
+
     }
+
+
 
     private void Callback(object? state)
+
     {
+
         if (!Quiz.IsPaused)
+
         {
+
             Quiz.CurrentTime++;
+
             Quiz.Questions[Quiz.CurrentQuestionIndex].ElapsedTime = Quiz.CurrentTime;
+
             InvokeAsync(StateHasChanged);
+
         }
+
     }
+
+
 
     private void PauseQuiz()
+
     {
+
         Quiz.IsPaused = true;
+
         timer?.Dispose();
+
     }
+
+
 
     private void ResumeQuiz()
+
     {
+
         Quiz.IsPaused = false;
+
         StartTimer();
+
     }
+
+
 
     private void NextQuestion()
+
     {
+
         Quiz.Questions[Quiz.CurrentQuestionIndex].ElapsedTime = Quiz.CurrentTime;
+
         if (Quiz.CurrentQuestionIndex < Quiz.Questions.Count - 1)
+
         {
+
             Quiz.CurrentQuestionIndex++;
+
             Quiz.CurrentTime = Quiz.Questions[Quiz.CurrentQuestionIndex].ElapsedTime;
+
         }
+
     }
+
+
 
     private void PreviousQuestion()
+
     {
+
         Quiz.Questions[Quiz.CurrentQuestionIndex].ElapsedTime = Quiz.CurrentTime;
+
         if (Quiz.CurrentQuestionIndex > 0)
+
         {
+
             Quiz.CurrentQuestionIndex--;
+
             Quiz.CurrentTime = Quiz.Questions[Quiz.CurrentQuestionIndex].ElapsedTime;
+
         }
+
     }
+
+
 
     private void SelectOption(string option)
+
     {
+
         Quiz.Questions[Quiz.CurrentQuestionIndex].SelectedAnswer = option;
+
     }
+
+
 
     private void OnSelectChanged(int questionIndex, IEnumerable<string> selected)
+
     {
+
         Quiz.Questions[questionIndex].CheckboxAnswers = selected.ToList();
+
     }
+
+
 
     private async Task SubmitQuiz()
+
     {
+
         var unanswered = new List<int>();
+
         for (int i = 0; i < Quiz.Questions.Count; i++)
+
         {
+
             var q = Quiz.Questions[i];
+
             if (q.Type == FluentBlazorQuiz.Services.QuestionType.MultipleChoice)
+
             {
+
                 if (string.IsNullOrEmpty(q.SelectedAnswer))
+
                     unanswered.Add(i + 1);
+
             }
+
             else if (q.Type == FluentBlazorQuiz.Services.QuestionType.Text || q.Type == FluentBlazorQuiz.Services.QuestionType.Image)
+
             {
+
                 if (string.IsNullOrWhiteSpace(q.TextAnswer))
+
                     unanswered.Add(i + 1);
+
             }
+
             else if (q.Type == FluentBlazorQuiz.Services.QuestionType.Checkbox)
+
             {
+
                 if (q.CheckboxAnswers == null || q.CheckboxAnswers.Count == 0)
+
                     unanswered.Add(i + 1);
+
             }
-        }
-        if (unanswered.Count > 0)
-        {
-            string message = "Questions Unanswered: " + string.Join(", ", unanswered) + ". Answer before moving on.";
-            await JS.InvokeVoidAsync("alert", message);
-            return;
+
         }
 
-        int score = 0;
-        foreach (var q in Quiz.Questions)
+        if (unanswered.Count > 0)
+
         {
-            if (q.Type == FluentBlazorQuiz.Services.QuestionType.MultipleChoice)
-            {
-                if (!string.IsNullOrEmpty(q.SelectedAnswer) && int.TryParse(q.SelectedAnswer, out int ans))
-                {
-                    if (ans == q.CorrectAnswer)
-                        score += 10;
-                }
-            }
-            else if (q.Type == FluentBlazorQuiz.Services.QuestionType.Text)
-            {
-                if (!string.IsNullOrWhiteSpace(q.TextAnswer) && int.TryParse(q.TextAnswer, out int ans))
-                {
-                    if (ans == q.CorrectAnswer)
-                        score += 10;
-                }
-            }
-            else if (q.Type == FluentBlazorQuiz.Services.QuestionType.Checkbox)
-            {
-                if (q.CheckboxAnswers.Count == 1 && int.TryParse(q.CheckboxAnswers[0], out int ans))
-                {
-                    if (ans == q.CorrectAnswer)
-                        score += 10;
-                }
-            }
-            else if (q.Type == FluentBlazorQuiz.Services.QuestionType.Image)
-            {
-                if (!string.IsNullOrWhiteSpace(q.TextAnswer) && q.TextAnswer.Trim() == q.CorrectFraction)
-                    score += 10;
-            }
+
+            string message = "Questions Unanswered: " + string.Join(", ", unanswered) + ". Answer before moving on.";
+
+            await JS.InvokeVoidAsync("alert", message);
+
+            return;
+
         }
-        Quiz.Grade = score;
-        Quiz.TotalTime = 0;
+
+
+
+        int score = 0;
+
         foreach (var q in Quiz.Questions)
+
+        {
+
+            if (q.Type == FluentBlazorQuiz.Services.QuestionType.MultipleChoice)
+
+            {
+
+                if (!string.IsNullOrEmpty(q.SelectedAnswer) && int.TryParse(q.SelectedAnswer, out int ans))
+
+                {
+
+                    if (ans == q.CorrectAnswer)
+
+                        score += 10;
+
+                }
+
+            }
+
+            else if (q.Type == FluentBlazorQuiz.Services.QuestionType.Text)
+
+            {
+
+                if (!string.IsNullOrWhiteSpace(q.TextAnswer) && int.TryParse(q.TextAnswer, out int ans))
+
+                {
+
+                    if (ans == q.CorrectAnswer)
+
+                        score += 10;
+
+                }
+
+            }
+
+            else if (q.Type == FluentBlazorQuiz.Services.QuestionType.Checkbox)
+
+            {
+
+                if (q.CheckboxAnswers.Count == 1 && int.TryParse(q.CheckboxAnswers[0], out int ans))
+
+                {
+
+                    if (ans == q.CorrectAnswer)
+
+                        score += 10;
+
+                }
+
+            }
+
+            else if (q.Type == FluentBlazorQuiz.Services.QuestionType.Image)
+
+            {
+
+                if (!string.IsNullOrWhiteSpace(q.TextAnswer) && q.TextAnswer.Trim() == q.CorrectFraction)
+
+                    score += 10;
+
+            }
+
+        }
+
+        Quiz.Grade = score;
+
+        Quiz.TotalTime = 0;
+
+        foreach (var q in Quiz.Questions)
+
             Quiz.TotalTime += q.ElapsedTime;
+
         Quiz.IsSubmitted = true;
+
         timer?.Dispose();
+
         StateHasChanged();
+
     }
+
 }
