@@ -52,15 +52,18 @@ else
         }
         else if (questions[currentQuestionIndex].Type == QuestionType.Checkbox)
         {
-            @foreach (var option in questions[currentQuestionIndex].Options)
-            {
-                <div>
-                    <FluentCheckbox OnChange="e => ToggleCheckbox(currentQuestionIndex, option, ((ChangeEventArgs)e).Value)"
-                                    Checked="@(questions[currentQuestionIndex].CheckboxAnswers.Contains(option))" />
-                    <label>@option</label>
-                </div>
-            }
+            <FluentSelect TOption="string" Multiple="true"
+                          Items="questions[currentQuestionIndex].Options"
+                          OptionText="@(option => option)"
+                          OptionValue="@(option => option)"
+                          SelectedOptions="questions[currentQuestionIndex].CheckboxAnswers"
+                          SelectedOptionsChanged="@(selected => OnSelectChanged(currentQuestionIndex, selected))"
+                          Placeholder="Select options">
+            </FluentSelect>
         }
+
+
+
         else if (questions[currentQuestionIndex].Type == QuestionType.Image)
         {
             <!-- For image-based questions, display the pie chart.
@@ -145,7 +148,7 @@ else
             {
                 Text = "What fraction does this pie chart show? (Pie Chart Question)",
                 Type = QuestionType.Image,
-                ImageUrl = "INSERT_PIE_CHART_IMAGE_LINK_HERE", // Drop your pie chart file link here
+                ImageUrl = "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTCLlRfIq-jbntyjQgO_emyfBBVeJ_Gn7n30w&s", // Drop your pie chart file link here
                 CorrectFraction = "3/8",
                 ElapsedTime = 0
             };
@@ -154,7 +157,7 @@ else
             {
                 Text = "What fraction does this pie chart show? (Pie Chart Question)",
                 Type = QuestionType.Image,
-                ImageUrl = "INSERT_PIE_CHART_IMAGE_LINK_HERE", // Drop your pie chart file link here
+                ImageUrl = "https://etc.usf.edu/clipart/74300/74310/74310_pie_1-4_lg.gif", // Drop your pie chart file link here
                 CorrectFraction = "1/4",
                 ElapsedTime = 0
             };
@@ -212,22 +215,13 @@ else
         questions[currentQuestionIndex].SelectedAnswer = option;
     }
 
-    // Updated method now accepts a question index so that each checkbox is updated independently
-    private void ToggleCheckbox(int questionIndex, string option, object checkedValue)
+    // This method is no longer needed since the two-way binding takes care of updating CheckboxAnswers.
+    // If you prefer to use an explicit event callback, remove the @bind-SelectedOptions and use SelectedOptionsChanged instead.
+    private void OnSelectChanged(int questionIndex, IEnumerable<string> selected)
     {
-        bool isChecked = checkedValue is bool b && b;
-        if (isChecked)
-        {
-            if (!questions[questionIndex].CheckboxAnswers.Contains(option))
-            {
-                questions[questionIndex].CheckboxAnswers.Add(option);
-            }
-        }
-        else
-        {
-            questions[questionIndex].CheckboxAnswers.Remove(option);
-        }
+        questions[questionIndex].CheckboxAnswers = selected.ToList();
     }
+
 
     private async Task SubmitQuiz()
     {
@@ -281,7 +275,8 @@ else
             }
             else if (q.Type == QuestionType.Checkbox)
             {
-                // For checkbox questions, expect only one correct option to be checked
+                // For checkbox questions, expect only one correct option to be selected
+                // Adjust as needed for your grading logic if multiple selections are allowed
                 if (q.CheckboxAnswers.Count == 1 && int.TryParse(q.CheckboxAnswers.First(), out int ans))
                 {
                     if (ans == q.CorrectAnswer)
